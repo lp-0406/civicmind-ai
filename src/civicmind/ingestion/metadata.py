@@ -180,7 +180,8 @@ class ArtifactVersion:
             raise ValueError(f"byte_size must be > 0, got {self.byte_size!r}")
         if not _SHA256_PATTERN.match(self.checksum_sha256):
             raise ValueError(
-                f"checksum_sha256 must be 64 lowercase hex characters, got {self.checksum_sha256!r}"
+                "checksum_sha256 must be 64 lowercase hex characters, "
+                f"got {self.checksum_sha256!r}"
             )
         _ensure_aware(self.acquired_at, "acquired_at")
 

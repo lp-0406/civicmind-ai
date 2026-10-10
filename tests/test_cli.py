@@ -99,6 +99,36 @@ def test_ingest_list_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert json.loads(capsys.readouterr().out) == []
 
 
+def test_catalog_list_reports_metadata_without_downloading(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["catalog", "list"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "21 canonical datasets" in output
+    assert "METADATA_ONLY" in output
+    assert "WTR-005" in output
+    assert "TRF-006" not in output
+
+
+def test_catalog_list_json_exposes_no_local_evidence(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["catalog", "list", "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert len(payload) == 21
+    ids = {item["dataset_id"] for item in payload}
+    assert "WTR-005" in ids
+    assert "TRF-006" not in ids
+    # Reading metadata must not imply an artefact, validation, or profiling.
+    assert {item["acquisition_state"] for item in payload} == {"METADATA_ONLY"}
+    assert {item["validation_state"] for item in payload} == {"NOT_VALIDATED"}
+    assert {item["profiling_state"] for item in payload} == {"NOT_PROFILED"}
+
+
 def test_parser_exposes_expected_commands() -> None:
     parser = build_parser()
 

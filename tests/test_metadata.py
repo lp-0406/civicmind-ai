@@ -304,7 +304,9 @@ class TestResearchDecisionAxis:
             (ResearchDecision.REJECT, ResearchDecision.CONDITIONAL),
         ],
     )
-    def test_permitted_transitions(self, start: ResearchDecision, target: ResearchDecision) -> None:
+    def test_permitted_transitions(
+        self, start: ResearchDecision, target: ResearchDecision
+    ) -> None:
         record = _record()
         record._research_decision = start  # set up the starting state directly
         record.record_research_review(ResearchReview(target, "reviewed", NOW))
@@ -945,7 +947,9 @@ class TestWorkflow:
     def test_full_lifecycle(self, tmp_path: Path) -> None:
         """KEEP -> download -> validate -> partial profile, as the plan describes."""
         record = _record(dataset_id="TRF-001")
-        record.record_research_review(ResearchReview(ResearchDecision.KEEP, "small, official", NOW))
+        record.record_research_review(
+            ResearchReview(ResearchDecision.KEEP, "small, official", NOW)
+        )
         record.record_artifact(_artifact(tmp_path, record))
         record.record_validation(_passing_report(record), scope="single CSV")
         record.record_profiling(

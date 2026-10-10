@@ -6,9 +6,11 @@ Commands
 ``civicmind health``               Inspect the local environment (exit 1 if unusable).
 ``civicmind config show``          Print resolved, secret-free settings.
 ``civicmind ingest list``          List registered ingestion handlers (no downloads).
+``civicmind catalog list``         List canonical datasets from the metadata CSV.
 
 The CLI is intentionally dependency-free (``argparse``) so the foundation runs
-on a bare Python install.
+on a bare Python install. No command downloads data; ``catalog list`` reads the
+version-controlled metadata CSV and reports metadata only.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ from civicmind import __version__
 from civicmind.config import ConfigurationError, Settings
 from civicmind.environment import check_environment
 from civicmind.ingestion import DEFAULT_REGISTRY
+from civicmind.ingestion.sources import CanonicalMetadataError, load_canonical_registry
 from civicmind.logging_config import setup_logging
 
 PROG = "civicmind"
@@ -89,6 +92,53 @@ def _cmd_ingest_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_catalog_list(args: argparse.Namespace) -> int:
+    """List canonical datasets built from the version-controlled metadata CSV.
+
+    This is the runtime entrypoint for the CSV -> registry path. It reads local
+    metadata only: nothing is downloaded, and listing does not change any status
+    axis (a record is reported exactly as loaded, still ``METADATA_ONLY``).
+    """
+    try:
+        registry = load_canonical_registry()
+    except CanonicalMetadataError as exc:
+        raise SystemExit(f"{PROG}: canonical metadata error: {exc}") from exc
+
+    records = registry.list_records()
+    if args.as_json:
+        payload = [
+            {
+                "dataset_id": record.dataset_id,
+                "title": record.title,
+                "research_status": (
+                    record.research_status.value if record.research_status else None
+                ),
+                "research_decision": record.research_decision.value,
+                "acquisition_state": record.acquisition_state.value,
+                "validation_state": record.validation_state.value,
+                "profiling_state": record.profiling_state.value,
+            }
+            for record in records
+        ]
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    if not records:
+        print("No canonical datasets loaded.")
+        return 0
+
+    for record in records:
+        print(
+            f"{record.dataset_id:<8} {record.research_decision.value:<12} "
+            f"{record.acquisition_state.value:<14} {record.title}"
+        )
+    print(
+        f"\n{len(records)} canonical datasets from metadata only; "
+        "nothing downloaded, nothing validated."
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Construct the argument parser (exposed for tests)."""
     parser = argparse.ArgumentParser(
@@ -144,6 +194,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="emit the list as JSON",
     )
     ingest_list.set_defaults(handler=_cmd_ingest_list)
+
+    catalog = subparsers.add_parser(
+        "catalog",
+        help="canonical dataset catalog commands (reads local metadata only)",
+    )
+    catalog_subparsers = catalog.add_subparsers(dest="catalog_command", required=True)
+    catalog_list = catalog_subparsers.add_parser(
+        "list",
+        help="list canonical datasets built from the metadata CSV",
+    )
+    catalog_list.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="emit the catalog as JSON",
+    )
+    catalog_list.set_defaults(handler=_cmd_catalog_list)
     return parser
 
 

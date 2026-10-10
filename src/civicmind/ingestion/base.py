@@ -124,7 +124,9 @@ class ValidationReport:
         """Raise :class:`DatasetValidationError` when any error issue exists."""
         if self.errors:
             summary = "; ".join(f"{issue.code}: {issue.message}" for issue in self.errors)
-            raise DatasetValidationError(f"Dataset {self.source_id!r} failed validation: {summary}")
+            raise DatasetValidationError(
+                f"Dataset {self.source_id!r} failed validation: {summary}"
+            )
 
 
 @dataclass(frozen=True)
