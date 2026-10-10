@@ -26,3 +26,15 @@ class AcquisitionError(IngestionError):
 
 class DatasetValidationError(IngestionError):
     """Raised when an acquired dataset fails validation and enforcement is on."""
+
+
+class InvalidTransitionError(IngestionError):
+    """Raised when a status change is not permitted by the four-axis model."""
+
+
+class MissingEvidenceError(IngestionError):
+    """Raised when an action requires evidence that has not been recorded.
+
+    Used by the validity gate: a file that merely exists is never enough to
+    call an artifact validated.
+    """

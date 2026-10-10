@@ -210,10 +210,17 @@ Consequently WTR-005 is simultaneously `research_status=ACQUIRED` and
 (schema cross-confirmed by secondary sources with no live API response — the
 manifest documents 3 real timed-out attempts).
 
-### 4.3 Proposed status model (design, not implemented)
+### 4.3 Status model (implemented in `civicmind.ingestion`)
+
+> **Update (2026-10-10).** This model is now **implemented** in
+> `civicmind.ingestion` (`states.py` + `metadata.py`), covered by
+> `tests/test_metadata.py`. One deviation from the original proposal: axis 1
+> gained the `CONDITIONAL → REPLACE` edge so the terminal `REPLACE` state is
+> reachable (see [ingestion_plan.md](ingestion_plan.md) §2.1). The value sets
+> below are unchanged.
 
 The sources mix several different questions into overlapping fields; the
-proposed canonical model keeps them separate. Full definition, authority,
+canonical model keeps them separate. Full definition, authority,
 permitted transitions and the validity gate live in
 [ingestion_plan.md](ingestion_plan.md) §2.1 — the value sets below are
 identical to that definition.
@@ -253,8 +260,10 @@ documented review pass; axis 2 advances only on **local** evidence (byte size
 + SHA-256 + timestamp under `data/raw/<id>/`) with `BLOCKED` reversible when
 the blocker clears; axis 3 advances only on a recorded passing report, carries
 a `validation_scope`, and reverts to `NOT_VALIDATED` when the artifact changes
-(prior result retained in history); axis 4 advances only on real measurement,
-with `SCHEMA_ONLY` always labelled documentation-derived. Failed validation
+**or is superseded** (prior result retained in history); axis 4 advances only on
+real measurement, with `SCHEMA_ONLY` always labelled documentation-derived — on
+`SUPERSEDED`, measured axis-4 states revert to `NOT_PROFILED` while `SCHEMA_ONLY`
+is kept. Failed validation
 keeps the bytes (`DOWNLOADED` + `VALIDATION_FAILED`) and retains the failing
 issues verbatim; partial profiling is recorded with a scope note so it cannot
 be mistaken for whole-dataset validation.

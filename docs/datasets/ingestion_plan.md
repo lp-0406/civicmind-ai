@@ -22,7 +22,32 @@ evidence-first ingestion plan.
 5. **Unknown stays unknown.** 12 of 21 datasets have unmeasured sizes;
    `UNKNOWN` is never replaced by an estimate without a measurement.
 
-## 2. Canonical metadata model (proposal — not yet implemented)
+## 2. Canonical metadata model (implemented in `civicmind.ingestion`)
+
+> **Implementation status (2026-10-10).** The four-axis status model and the
+> canonical record are now implemented in code:
+>
+> * `civicmind.ingestion.states` — the four axis vocabularies and their
+>   permitted-transition tables (`RESEARCH_DECISION_TRANSITIONS`,
+>   `ACQUISITION_STATE_TRANSITIONS`, `VALIDATION_STATE_TRANSITIONS`,
+>   `PROFILING_STATE_TRANSITIONS`), plus a generic `ensure_transition` guard.
+> * `civicmind.ingestion.metadata` — `CanonicalDatasetRecord` (the canonical
+>   metadata record), `ArtifactVersion` (artifact-version history),
+>   `ValidationEvent`/`ProfilingEvent` (validation- and profiling-history),
+>   `ValidationEvidence` (the five-part validity gate), `ResearchReview`,
+>   `ResourcePlan`, and `CANONICAL_DATASET_IDS` (all 21 IDs, incl. WTR-005).
+> * `civicmind.ingestion.exceptions` — `InvalidTransitionError` and
+>   `MissingEvidenceError`.
+>
+> Rather than widen `SourceDescriptor`, the implementation adds a **sibling**
+> `CanonicalDatasetRecord` dataclass; the existing `DatasetIngestor` contract
+> is unchanged and no download behaviour was added. The one deliberate
+> **deviation** from the proposal is the `CONDITIONAL → REPLACE` edge on axis 1
+> (see §2.1) — the proposal left `REPLACE` with no inbound transition, which
+> would have made the documented WTR-001 case unreachable.
+>
+> Covered by `tests/test_metadata.py` (115 tests). Downloads, handlers, APIs,
+> and LLM/RAG/agent components remain **unimplemented by design**.
 
 Maps 1:1 onto the existing `civicmind.ingestion` contract; `SourceDescriptor`
 gains fields, the contract itself is unchanged.
@@ -49,7 +74,7 @@ gains fields, the contract itself is unchanged.
 | resource plan | `resource_requirements.csv` | download/extracted/working MB, RAM, strategy, size_class |
 | `data_quality_issues`, `acquisition_notes` | manifest + Freeze notes | travel with the dataset forever |
 
-### 2.1 Proposed status model (design — not implemented)
+### 2.1 Status model (implemented; see deviation note on axis 1)
 
 #### Why the model grows from three axes to four
 
@@ -81,18 +106,33 @@ validation while remaining barely profiled. **`PROFILED` therefore never means
 **Permitted transitions**
 
 *Axis 1 — research decision.* `CONDITIONAL` → `KEEP` / `KEEP_WITH_CHUNKING` /
-`REJECT`; `KEEP` ⇄ `KEEP_WITH_CHUNKING` (processing refinement only);
-`REJECT` → `CONDITIONAL` only with new evidence. `REPLACE` is a planning
-decision that records `replacement_target=<id>`; it is terminal **for the
-record's eligibility**, never for its bytes. **Every change requires a
-documented review pass — no silent moves.**
+`REPLACE` / `REJECT`; `KEEP` ⇄ `KEEP_WITH_CHUNKING` (processing refinement
+only); `REJECT` → `CONDITIONAL` only with new evidence. `REPLACE` is a
+planning decision that records `replacement_target=<id>`; it is terminal
+**for the record's eligibility**, never for its bytes, and is entered **only
+from `CONDITIONAL`** by a review that names a `replacement_target`. **Every
+change requires a documented review pass — no silent moves.**
+
+> **Deviation from the proposal (implemented).** The original proposal listed
+> `CONDITIONAL` → `KEEP` / `KEEP_WITH_CHUNKING` / `REJECT` and described
+> `REPLACE` as terminal, but gave it **no inbound edge** — so no sequence of
+> reviews could ever reach `REPLACE`, even though the plan's own worked example
+> (WTR-001 → WTR-005) *is* `REPLACE`. The implementation adds the single edge
+> `CONDITIONAL` → `REPLACE`, keeping `REPLACE` terminal (no outbound edges).
+> This makes the WTR-001 case reachable while preserving the invariant that
+> every axis-1 change goes through a documented `ResearchReview`. No other
+> axis-1 edge was altered.
 
 *Axis 2 — acquisition state.* `METADATA_ONLY` → `DOWNLOADED` (requires an
 artefact under `data/raw/<id>/` **with recorded byte size, SHA-256 and
 acquisition timestamp**); `METADATA_ONLY` ⇄ `BLOCKED` (blocker hit / cleared);
 any → `SUPERSEDED` (records `superseded_by`). `DOWNLOADED` → `METADATA_ONLY`
 only on proven artefact loss, with a recorded reason. Re-downloads append a
-new acquisition event; they do not regress state.
+new acquisition event; they do not regress state. **Superseding invalidates
+the current result** (implemented, matching re-validation below): on
+`SUPERSEDED`, axis 3 returns to `NOT_VALIDATED` and measured axis-4 states
+drop to `NOT_PROFILED` (`SCHEMA_ONLY` is documentation-derived and is kept);
+prior validation/profiling events stay in history, never deleted.
 
 *Axis 3 — validation state.* `NOT_VALIDATED` → `VALIDATED` requires **all** of:
 an artefact on disk, recorded byte size, recorded SHA-256, acquisition
@@ -143,7 +183,10 @@ validation result. Missing any one of the five leaves the record at
 #### Cross-axis rules
 
 1. Axis 3 (`VALIDATED`) requires axis 2 = `DOWNLOADED` **and** the full
-   five-part validity gate above.
+   five-part validity gate above. When axis 2 leaves `DOWNLOADED` for
+   `SUPERSEDED`, axis 3 reverts to `NOT_VALIDATED` and measured axis-4
+   profiling reverts to `NOT_PROFILED` (`SCHEMA_ONLY` retained), so this
+   invariant always holds; history is kept.
 2. Axis 4 past `SCHEMA_ONLY` requires axis 2 = `DOWNLOADED`. Statistics
    computed on bytes that are `NOT_VALIDATED`/`VALIDATION_FAILED` must be
    labelled **provisional**.
@@ -158,8 +201,9 @@ validation result. Missing any one of the five leaves the record at
    configured **and tested** with a real successful call. No credential is
    requested, stored or written to documentation by this plan.
 
-Status: **proposed design** for the future metadata record. Nothing in
-`civicmind.ingestion` implements it yet; the existing contract is unchanged.
+Status: **implemented** in `civicmind.ingestion` (`states.py` + `metadata.py`);
+the existing `DatasetIngestor` contract is unchanged and nothing is downloaded
+automatically. Tests live in `tests/test_metadata.py`.
 
 ## 3. Resource review (from `resource_requirements.csv`, before any download)
 
