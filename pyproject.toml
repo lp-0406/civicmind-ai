@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "civicmind-ai"
+version = "0.1.0"
+description = "Evidence-grounded AI-powered municipal decision-intelligence platform"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "CivicMind AI Contributors" }]
+keywords = [
+    "municipal",
+    "open-data",
+    "decision-intelligence",
+    "evidence-based-policy",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
+dependencies = [
+    # Needed to read secrets and local overrides from a `.env` file.
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+    "ruff>=0.5",
+]
+# Optional AI/GPU stack. Never required for ingestion, validation or tests.
+ai = [
+    "torch>=2.2",
+]
+
+[project.scripts]
+civicmind = "civicmind.cli:main"
+
+[project.urls]
+Repository = "https://github.com/lp-0406/civicmind-ai"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+civicmind = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+# Markdown is excluded: fenced examples are illustrative prose, not modules.
+extend-exclude = ["data", "artifacts", "logs", ".venv", "*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # import sorting
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # comprehensions
+    "SIM", # simplifications
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["civicmind"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

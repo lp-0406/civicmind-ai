@@ -218,3 +218,51 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===========================================================================
+# CivicMind AI additions
+# ===========================================================================
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Secrets and local environment files (keep the shareable template only)
+.env
+.env.*
+!.env.example
+
+# IDE / OS metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Model weights, checkpoints and binary blobs
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.gguf
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.joblib
+
+# Datasets: raw, interim, processed and external data are NEVER committed
+# (the .gitkeep placeholders below keep the directory tree in Git)
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+!data/**/.gitkeep
+
+# Generated artifacts and logs
+artifacts/*
+!artifacts/.gitkeep
+logs/*
+!logs/.gitkeep
+
