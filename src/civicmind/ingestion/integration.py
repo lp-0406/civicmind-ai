@@ -33,6 +33,7 @@ from civicmind.ingestion.catalog import (
     UnknownDatasetError,
 )
 from civicmind.ingestion.exceptions import IngestionError
+from civicmind.ingestion.identifiers import canonical_dataset_id
 from civicmind.ingestion.metadata import CanonicalDatasetRecord
 from civicmind.ingestion.policy import (
     ConditionalApprovalRequiredError,
@@ -76,7 +77,10 @@ def resolve_dataset_for_ingestion(
     registry:
         Catalog to look the dataset up in.
     dataset_id:
-        Canonical dataset id to resolve.
+        Canonical dataset id to resolve. The ingestion-registry slug
+        (``trf-001``) is accepted too and normalised through
+        :mod:`civicmind.ingestion.identifiers`; the record it selects is always
+        the canonical one.
     authorization:
         Required when the dataset is ``CONDITIONAL``. Optional for eligible
         (``KEEP``, ``KEEP_WITH_CHUNKING``) datasets; supplied anyway when the
@@ -99,7 +103,9 @@ def resolve_dataset_for_ingestion(
         When the dataset is ``CONDITIONAL`` and no authorization is provided.
     """
     try:
-        record = resolve_conditional(registry, dataset_id, authorization=authorization)
+        record = resolve_conditional(
+            registry, canonical_dataset_id(dataset_id), authorization=authorization
+        )
     except UnknownDatasetError as exc:
         raise DatasetNotRegisteredError(str(exc)) from exc
     except (RejectedDatasetError, ReplacedDatasetError, ConditionalApprovalRequiredError):
@@ -118,9 +124,14 @@ def prepare_ingestion(
 
     This is the integration point used by callers that already have a concrete
     :class:`DatasetIngestor` bound to a canonical dataset id. It resolves the
-    canonical record, asserts eligibility, and verifies the ingestor's
-    ``source_id`` matches the canonical dataset id before any acquisition is
-    attempted.
+    canonical record, asserts eligibility, and verifies that the ingestor's
+    ``source_id`` denotes the same dataset before any acquisition is attempted.
+
+    The comparison goes through :func:`civicmind.ingestion.identifiers.canonical_dataset_id`,
+    so a handler whose :class:`~civicmind.ingestion.base.SourceDescriptor`
+    carries the registry slug (``trf-001``) binds the same canonical record as
+    one carrying the canonical id (``TRF-001``). The two namespaces are
+    deliberately different shapes and cannot be compared by equality.
 
     The ingestor itself is **not** run here. Run :meth:`DatasetIngestor.acquire`
     (or :meth:`DatasetIngestor.ingest`) on the returned ingestor afterward, then
@@ -149,9 +160,10 @@ def prepare_ingestion(
     record = resolve_dataset_for_ingestion(
         registry, ingestor.source_id, authorization=authorization
     )
-    if record.dataset_id != ingestor.source_id:
+    handler_dataset_id = canonical_dataset_id(ingestor.source_id)
+    if record.dataset_id != handler_dataset_id:
         raise RegistryIntegrationError(
-            f"Ingestor source_id {ingestor.source_id!r} does not match resolved canonical "
-            f"dataset id {record.dataset_id!r}"
+            f"Ingestor source_id {ingestor.source_id!r} does not resolve to canonical dataset "
+            f"id {record.dataset_id!r} (it denotes {handler_dataset_id!r})"
         )
     return record

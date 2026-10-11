@@ -82,21 +82,53 @@ def test_config_show_excludes_secrets(
     assert "raw_data_dir" in payload
 
 
-def test_ingest_list_is_empty_and_downloads_nothing(
-    capsys: pytest.CaptureFixture[str],
+def test_ingest_list_reports_the_shipped_handler_without_downloading(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """The listing must be accurate and must never acquire anything.
+
+    This test previously asserted an empty listing. That expectation became
+    obsolete when the TRF-001 handler shipped: a listing that hides a handler
+    which exists is a defect, not a contract. The invariant the old test
+    actually protected - that listing downloads nothing - is preserved and
+    strengthened here by failing the test if the transport is ever touched.
+    """
+
+    def _forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError("ingest list must not perform a transfer")
+
+    monkeypatch.setattr("civicmind.ingestion.handlers.trf_001.download_to_file", _forbidden)
+
     exit_code = main(["ingest", "list"])
 
     output = capsys.readouterr().out
     assert exit_code == 0
-    assert "No ingestion handlers registered." in output
+    assert "trf-001" in output
+    assert "TRF-001" in output
+    assert "No ingestion handlers registered." not in output
 
 
-def test_ingest_list_json(capsys: pytest.CaptureFixture[str]) -> None:
+def test_ingest_list_json_describes_the_shipped_handler(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     exit_code = main(["ingest", "list", "--json"])
 
+    payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert json.loads(capsys.readouterr().out) == []
+    assert [item["source_id"] for item in payload] == ["trf-001"]
+    handler = payload[0]
+    assert handler["dataset_id"] == "TRF-001"
+    assert handler["title"] == "Traffic Accidents in India (Smart Cities)"
+    assert handler["license"] == "Other (Public Domain) / Open Data"
+    assert handler["uri"].startswith("https://data.opencity.in/")
+
+
+def test_nothing_is_auto_registered_into_the_default_registry() -> None:
+    """Shipping a handler must not silently populate the process-wide registry."""
+    from civicmind.ingestion import DEFAULT_REGISTRY
+
+    assert len(DEFAULT_REGISTRY) == 0
+    assert DEFAULT_REGISTRY.source_ids() == ()
 
 
 def test_catalog_list_reports_metadata_without_downloading(
