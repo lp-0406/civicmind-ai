@@ -31,6 +31,7 @@ import argparse
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from civicmind import __version__
@@ -303,6 +304,29 @@ def _cmd_ingest_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ingest_research_run(args: argparse.Namespace) -> int:
+    """Run the supported local ingestion workflow and write research deliverables."""
+    from civicmind.ingestion.research_run import run_research_ingestion
+
+    report = run_research_ingestion(
+        args.settings,
+        output_dir=Path(args.out) if args.out else None,
+        rationale=args.authorize,
+    )
+    payload = report.as_dict()
+    if args.as_json:
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(f"Output dir      : {payload['output_dir']}")
+    print(f"Markdown report : {payload['markdown_path']}")
+    print(f"JSON results    : {payload['json_path']}")
+    print(f"CSV summary     : {payload['csv_path']}")
+    print(f"PDF summary     : {payload['pdf_path']}")
+    print(f"Manifest        : {payload['manifest_path']}")
+    print(f"Datasets mapped : {payload['dataset_count']}")
+    return 0
+
+
 def _cmd_ask(args: argparse.Namespace) -> int:
     """Answer a municipal question through the evidence-grounded AI pipeline."""
     from civicmind.ai.engine import DecisionEngine
@@ -527,6 +551,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="show the recorded acquisition, validation and profiling state",
     )
     ingest_status.set_defaults(handler=_cmd_ingest_status)
+
+    ingest_research_run = ingest_subparsers.add_parser(
+        "research-run",
+        help="run supported local artifact ingestion and generate research deliverables",
+    )
+    ingest_research_run.add_argument(
+        "--authorize",
+        metavar="RATIONALE",
+        required=True,
+        help="documented rationale authorizing supported local registrations",
+    )
+    ingest_research_run.add_argument(
+        "--out",
+        default=None,
+        help="output directory for generated deliverables",
+    )
+    ingest_research_run.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="emit generated paths as JSON",
+    )
+    ingest_research_run.set_defaults(handler=_cmd_ingest_research_run)
 
     for subparser in (
         ingest_plan,

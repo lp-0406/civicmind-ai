@@ -288,7 +288,8 @@ class Trf001Ingestor(DatasetIngestor):
                     message="artifact begins with a UTF-8 BOM; it is decoded as utf-8-sig",
                 )
             )
-        if b"\x00" in raw:
+        has_nul_bytes = b"\x00" in raw
+        if has_nul_bytes:
             issues.append(
                 QualityIssue(
                     severity="error",
@@ -310,6 +311,18 @@ class Trf001Ingestor(DatasetIngestor):
             return self._report(issues)
 
         issues.extend(self._structural_issues(text))
+        if has_nul_bytes and not any(issue.code == "CSV_PARSE_ERROR" for issue in issues):
+            issues.append(
+                QualityIssue(
+                    severity="error",
+                    code="CSV_PARSE_ERROR",
+                    message=(
+                        "artifact contains NUL bytes; it is not accepted as structurally "
+                        "consistent CSV"
+                    ),
+                    context={"reason": "nul_bytes"},
+                )
+            )
         return self._report(issues)
 
     # -- helpers -----------------------------------------------------------
