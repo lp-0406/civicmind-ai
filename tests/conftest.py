@@ -223,3 +223,34 @@ def pilot_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
     monkeypatch.setenv("CIVICMIND_LOGS_DIR", str(tmp_path / "logs"))
     monkeypatch.setenv("CIVICMIND_ENV", "testing")
     return Settings.from_env()
+
+
+# ---------------------------------------------------------------------------
+# AI-layer fixtures: the real, supplied CSVs under the repository's data/raw.
+# ---------------------------------------------------------------------------
+
+#: Repository root, resolved from this file so the path is cwd-independent.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+RAW_DIR = REPO_ROOT / "data" / "raw"
+
+#: The five supplied datasets the AI layer expects.
+SUPPLIED_CSVS: tuple[str, ...] = (
+    "RA2019_A2.csv",
+    "RA2019_A47.csv",
+    "RA2019_A49.csv",
+    "RA2019_A52.csv",
+    "BWSSB_Water_Consumption_August_2025.csv",
+)
+
+#: True when every supplied CSV is present; AI integration tests skip otherwise.
+HAS_SUPPLIED_CSVS = all((RAW_DIR / name).is_file() for name in SUPPLIED_CSVS)
+
+
+@pytest.fixture
+def raw_settings() -> Settings:
+    """Settings pointing at the repository's real data/raw tree.
+
+    Constructed with an explicit empty environment mapping so a developer's
+    local ``.env`` cannot redirect the path or inject credentials into tests.
+    """
+    return Settings.from_env({})

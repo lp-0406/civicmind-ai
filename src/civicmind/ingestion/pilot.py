@@ -35,8 +35,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from civicmind import __version__ as CIVICMIND_VERSION
 from civicmind.config import Settings
-from civicmind.ingestion.base import AcquisitionResult
+from civicmind.ingestion.base import (
+    AcquisitionResult,
+    ProvenanceRecord,
+)
 from civicmind.ingestion.catalog import DatasetRegistry
 from civicmind.ingestion.evidence import EvidenceStore, ReplayReport, append_section
 from civicmind.ingestion.exceptions import IngestionError
@@ -336,11 +340,28 @@ def build_plan(
     handler = build_pilot_handler(dataset_id, resource_url=resource_url)
     bounds = handler.limits
     decision = record.research_decision.value
+
+    # The shipped network handlers use a single, well-known resource URL that is
+    # cited from the ingestion plan. Local-only handlers do not have a network
+    # resource URL, and we must not invent one or reuse the TRF-001 URL for WTR-005.
+    if hasattr(handler, "resource_url") and handler.resource_url:
+        resource_url = handler.resource_url
+        resource_url_citation = RESOURCE_URL_CITATION
+        dataset_page_url = DATASET_PAGE_URL
+    else:
+        resource_url = None
+        resource_url_citation = None
+        dataset_page_url = None
+
     notes = [
         "dry run: no network request, no file written, no state changed",
-        f"resource URL is cited from {RESOURCE_URL_CITATION} and re-checked at acquisition time",
-        "licence is recorded as a source claim only; license_verified stays false (C-07)",
     ]
+    if resource_url is not None:
+        notes.append(
+            f"resource URL is cited from {RESOURCE_URL_CITATION} and re-checked at "
+            "acquisition time"
+        )
+    notes.append("licence is recorded as a source claim only")
     if record.license_verified:
         notes.append("license_verified is true in the canonical metadata")
     return PlanReport(
@@ -354,9 +375,9 @@ def build_plan(
         validation_state=record.validation_state.value,
         profiling_state=record.profiling_state.value,
         authorization_required=decision == "CONDITIONAL",
-        resource_url=handler.resource_url,
-        resource_url_citation=RESOURCE_URL_CITATION,
-        dataset_page_url=DATASET_PAGE_URL,
+        resource_url=resource_url or "",
+        resource_url_citation=resource_url_citation or "",
+        dataset_page_url=dataset_page_url or "",
         artifact_dir=str(artifact_dir(settings, dataset_id)),
         evidence_path=str(store.path),
         profile_dir=str(profile_dir(settings, dataset_id)),
@@ -376,13 +397,20 @@ def acquire(
     max_bytes: int | None = None,
     clock: Callable[[], datetime] = _utc_now,
     sleep: Callable[[float], None] | None = None,
+    local_artifact_path: Path | None = None,
 ) -> AcquisitionReport:
     """Acquire the dataset after the eligibility policy authorizes it.
+
+    For network-based handlers this fetches the resource through the handler's
+    ``acquire`` method. For local-only handlers (for example WTR-005), this
+    registers an already-present file through the handler's ``acquire_local_artifact``
+    method when ``local_artifact_path`` is supplied.
 
     Raises
     ------
     PilotError
-        When no authorization rationale is supplied.
+        When no authorization rationale is supplied, or when a local-only handler
+        is used without a ``local_artifact_path``.
     ConditionalApprovalRequiredError / RejectedDatasetError / ReplacedDatasetError
         From the eligibility policy, unchanged.
     """
@@ -398,38 +426,72 @@ def acquire(
     authorization = ConditionalAuthorization(rationale=rationale)
     resolve_dataset_for_ingestion(registry, dataset_id, authorization=authorization)
 
-    limits = TransferLimits(max_bytes=max_bytes or DEFAULT_MAX_BYTES)
-    handler = build_pilot_handler(
-        dataset_id, resource_url=resource_url, limits=limits, clock=clock, sleep=sleep
-    )
-    destination = artifact_dir(settings, dataset_id)
-    result = handler.acquire(destination)
+    if local_artifact_path is not None:
+        handler = build_pilot_handler(dataset_id)
+        if not hasattr(handler, "acquire_local_artifact"):
+            raise PilotError(
+                f"{dataset_id} has no local-artifact registration path; "
+                "supply a resource URL instead of a local path"
+            )
+        result = handler.acquire_local_artifact(local_artifact_path)
+    else:
+        limits = TransferLimits(max_bytes=max_bytes or DEFAULT_MAX_BYTES)
+        handler = build_pilot_handler(
+            dataset_id, resource_url=resource_url, limits=limits, clock=clock, sleep=sleep
+        )
+        destination = artifact_dir(settings, dataset_id)
+        result = handler.acquire(destination)
 
     if result.local_path is None or result.byte_size is None or result.checksum_sha256 is None:
         raise PilotError("acquisition returned an incomplete result; nothing was recorded")
 
-    artifact = ArtifactVersion(
-        version=len(record.artifacts) + 1,
-        path=Path(result.local_path),
-        byte_size=result.byte_size,
-        checksum_sha256=result.checksum_sha256,
-        acquired_at=result.acquired_at,
-        provenance=handler.build_provenance(result),
-        method=result.method or ACQUISITION_METHOD,
-    )
+    if local_artifact_path is not None:
+        provenance = ProvenanceRecord(
+            source_id=dataset_id,
+            title=record.title,
+            publisher=record.publisher,
+            license=record.license,
+            source_uri=None if result.local_path is None else "file:" + str(result.local_path),
+            acquired_at=result.acquired_at,
+            acquisition_method=result.method or "local-registration",
+            local_path=None if result.local_path is None else str(result.local_path),
+            checksum_sha256=result.checksum_sha256,
+            byte_size=result.byte_size,
+            handler=f"{type(handler).__module__}.{type(handler).__qualname__}",
+            handler_version=getattr(handler, "HANDLER_VERSION", "0"),
+            civicmind_version=CIVICMIND_VERSION,
+        )
+        artifact = ArtifactVersion(
+            version=len(record.artifacts) + 1,
+            path=Path(result.local_path),
+            byte_size=result.byte_size,
+            checksum_sha256=result.checksum_sha256,
+            acquired_at=result.acquired_at,
+            provenance=provenance,
+            method=result.method or "local-registration",
+        )
+    else:
+        artifact = ArtifactVersion(
+            version=len(record.artifacts) + 1,
+            path=Path(result.local_path),
+            byte_size=result.byte_size,
+            checksum_sha256=result.checksum_sha256,
+            acquired_at=result.acquired_at,
+            provenance=handler.build_provenance(result),
+            method=result.method or ACQUISITION_METHOD,
+        )
     record.record_artifact(artifact)
 
     authorizations = append_section(
         (payload or {}).get("authorizations"),
         {"rationale": rationale.strip(), "recorded_at": clock().isoformat()},
     )
-    store.save(
-        record,
-        extra={
-            "authorizations": authorizations,
-            "resource_provenance": handler.resource_provenance(),
-        },
-    )
+    extra: dict[str, Any] = {
+        "authorizations": authorizations,
+    }
+    if hasattr(handler, "resource_provenance"):
+        extra["resource_provenance"] = handler.resource_provenance()
+    store.save(record, extra=extra)
 
     return AcquisitionReport(
         dataset_id=dataset_id,

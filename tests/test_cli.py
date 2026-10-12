@@ -115,8 +115,10 @@ def test_ingest_list_json_describes_the_shipped_handler(
 
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert [item["source_id"] for item in payload] == ["trf-001"]
-    handler = payload[0]
+    shipped_source_ids = [item["source_id"] for item in payload]
+    assert "trf-001" in shipped_source_ids
+    assert "trf-004" in shipped_source_ids
+    handler = next(item for item in payload if item["source_id"] == "trf-001")
     assert handler["dataset_id"] == "TRF-001"
     assert handler["title"] == "Traffic Accidents in India (Smart Cities)"
     assert handler["license"] == "Other (Public Domain) / Open Data"

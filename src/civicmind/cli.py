@@ -12,12 +12,17 @@ Commands
 ``civicmind ingest profile``       Profile the locally acquired artifact.
 ``civicmind ingest status``        Show the recorded four-axis state.
 ``civicmind catalog list``         List canonical datasets from the metadata CSV.
+``civicmind ask "question"``       Answer a municipal question from the supplied CSVs.
+``civicmind ai datasets``          List the AI layer's datasets and availability.
+``civicmind ai serve``             Serve the FastAPI interface with uvicorn.
 
-The CLI is intentionally dependency-free (``argparse``) so the foundation runs
-on a bare Python install. ``catalog list`` reads the version-controlled metadata
-CSV and reports metadata only, ``ingest plan`` is a dry run that neither uses the
-network nor writes, and ``ingest acquire`` is the only command that fetches
-anything - and only for a dataset the eligibility policy has authorized.
+The CLI is intentionally dependency-free (``argparse``) at import time so the
+foundation runs on a bare Python install; the AI commands import pandas, the
+decision engine and (for ``serve``) FastAPI lazily inside their handlers.
+``catalog list`` reads the version-controlled metadata CSV and reports metadata
+only, ``ingest plan`` is a dry run that neither uses the network nor writes, and
+``ingest acquire`` is the only command that fetches anything - and only for a
+dataset the eligibility policy has authorized.
 """
 
 from __future__ import annotations
@@ -215,6 +220,7 @@ def _cmd_ingest_acquire(args: argparse.Namespace) -> int:
         dataset_id=args.dataset,
         rationale=args.authorize,
         max_bytes=args.max_bytes,
+        local_artifact_path=getattr(args, "local_artifact", None),
     )
     if args.as_json:
         print(json.dumps(report.as_dict(), indent=2))
@@ -294,6 +300,118 @@ def _cmd_ingest_status(args: argparse.Namespace) -> int:
     print(f"Evidence file  : {report.evidence_path} (present: {present})")
     if report.replayed_skipped:
         print(f"Replay skipped : {', '.join(report.replayed_skipped)} (already reflected)")
+    return 0
+
+
+def _cmd_ask(args: argparse.Namespace) -> int:
+    """Answer a municipal question through the evidence-grounded AI pipeline."""
+    from civicmind.ai.engine import DecisionEngine
+
+    engine = DecisionEngine.from_env(args.settings)
+    answer = engine.ask(args.question)
+    if args.as_json:
+        print(json.dumps(answer.to_dict(), indent=2))
+        return 0 if answer.supported else 2
+    print(answer.explanation)
+    print()
+    mode = f"{answer.execution_mode} (provider: {answer.provider}"
+    if answer.model:
+        mode += f", model: {answer.model}"
+    print(f"Execution mode : {mode})")
+    if answer.dataset_id:
+        print(f"Dataset        : {answer.dataset_id}")
+    if answer.fallback_reason:
+        print(f"Note           : {answer.fallback_reason}")
+    return 0 if answer.supported else 2
+
+
+def _cmd_ai_datasets(args: argparse.Namespace) -> int:
+    """List the AI layer's declared datasets and whether each is present."""
+    from civicmind.ai.datasets import available_datasets, list_dataset_specs
+
+    available = {spec.dataset_id for spec in available_datasets(args.settings)}
+    specs = list_dataset_specs()
+    if args.as_json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "dataset_id": spec.dataset_id,
+                        "filename": spec.filename,
+                        "canonical_id": spec.canonical_id,
+                        "mapping_status": spec.mapping_status,
+                        "license_status": spec.license_status,
+                        "available": spec.dataset_id in available,
+                    }
+                    for spec in specs
+                ],
+                indent=2,
+            )
+        )
+        return 0
+    print(f"{'dataset_id':<14} {'available':<10} {'canonical':<10} title")
+    for spec in specs:
+        present = "yes" if spec.dataset_id in available else "no"
+        print(f"{spec.dataset_id:<14} {present:<10} {spec.canonical_id or '-':<10} {spec.title}")
+    return 0
+
+
+def _cmd_ai_evaluate(args: argparse.Namespace) -> int:
+    """Run the fixed evaluation benchmark against the real CSVs."""
+    from pathlib import Path
+
+    from civicmind.ai.config import AISettings
+    from civicmind.ai.evaluation import EvaluationHarness
+
+    harness = EvaluationHarness(args.settings, ai_settings=AISettings(provider="deterministic"))
+    report = harness.run()
+
+    if args.out:
+        payload = {"benchmark": harness.benchmark_payload(), "report": report.to_dict()}
+        Path(args.out).write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        if not args.as_json:
+            print(f"wrote benchmark and report to {args.out}")
+
+    if args.as_json:
+        print(report.to_json())
+    else:
+        print("\n".join(report.summary_lines()))
+        failing = [
+            outcome.case_id
+            for outcome in report.outcomes
+            if not outcome.intent_ok
+            or outcome.numerical_ok is False
+            or outcome.attribution_ok is False
+            or outcome.unsupported_ok is False
+        ]
+        if failing:
+            print(f"failing cases: {', '.join(failing)}")
+
+    core = (
+        "numerical_accuracy",
+        "attribution_accuracy",
+        "unsupported_rejection_rate",
+        "intent_accuracy",
+    )
+    return 0 if all(report.metrics.get(key, 0.0) == 1.0 for key in core) else 1
+
+
+def _cmd_ai_serve(args: argparse.Namespace) -> int:
+    """Serve the FastAPI application with uvicorn."""
+    try:
+        import uvicorn
+    except ImportError as exc:  # pragma: no cover - uvicorn is an optional extra
+        raise SystemExit(
+            f"{PROG}: serving the API requires 'uvicorn' and 'fastapi'; install the 'api' extra"
+        ) from exc
+    uvicorn.run(
+        "civicmind.ai.api:create_app",
+        factory=True,
+        host=args.host,
+        port=args.port,
+    )
     return 0
 
 
@@ -384,6 +502,12 @@ def build_parser() -> argparse.ArgumentParser:
         dest="max_bytes",
         help="hard ceiling on the response size for this transfer",
     )
+    ingest_acquire.add_argument(
+        "--local-artifact",
+        default=None,
+        dest="local_artifact",
+        help="path to an already-present local CSV to register (local-only handlers only)",
+    )
     ingest_acquire.set_defaults(handler=_cmd_ingest_acquire)
 
     ingest_validate = ingest_subparsers.add_parser(
@@ -429,6 +553,61 @@ def build_parser() -> argparse.ArgumentParser:
         help="emit the catalog as JSON",
     )
     catalog_list.set_defaults(handler=_cmd_catalog_list)
+
+    ask = subparsers.add_parser(
+        "ask",
+        help="answer a municipal question from the supplied CSVs (deterministic by default)",
+    )
+    ask.add_argument("question", help="the municipal question to answer")
+    ask.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="emit the full grounded answer as JSON",
+    )
+    ask.set_defaults(handler=_cmd_ask)
+
+    ai = subparsers.add_parser(
+        "ai",
+        help="AI decision-support layer commands",
+    )
+    ai_subparsers = ai.add_subparsers(dest="ai_command", required=True)
+    ai_datasets = ai_subparsers.add_parser(
+        "datasets",
+        help="list the AI layer's datasets and whether each is present under data/raw",
+    )
+    ai_datasets.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="emit the list as JSON",
+    )
+    ai_datasets.set_defaults(handler=_cmd_ai_datasets)
+
+    ai_evaluate = ai_subparsers.add_parser(
+        "evaluate",
+        help="run the fixed benchmark and report numerical/attribution/rejection metrics",
+    )
+    ai_evaluate.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="emit the full report as JSON",
+    )
+    ai_evaluate.add_argument(
+        "--out",
+        default=None,
+        help="write the benchmark definition and report JSON to this path",
+    )
+    ai_evaluate.set_defaults(handler=_cmd_ai_evaluate)
+
+    ai_serve = ai_subparsers.add_parser(
+        "serve",
+        help="serve the FastAPI interface (requires the 'api' extra)",
+    )
+    ai_serve.add_argument("--host", default="127.0.0.1", help="bind address")
+    ai_serve.add_argument("--port", type=int, default=8000, help="bind port")
+    ai_serve.set_defaults(handler=_cmd_ai_serve)
     return parser
 
 

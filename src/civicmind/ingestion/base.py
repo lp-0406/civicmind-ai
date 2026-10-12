@@ -17,7 +17,8 @@ Design rules
   :meth:`DatasetIngestor.acquire` runs only when a caller explicitly asks.
 * No fabricated data. Fields that a handler cannot know (for example a record
   count) stay ``None`` rather than being invented.
-* Failures are explicit: handlers raise :class:`~civicmind.ingestion.exceptions.AcquisitionError`
+* Failures are explicit: handlers raise
+  :class:`~civicmind.ingestion.exceptions.AcquisitionError`
   (or a subclass) instead of returning partial, unlabelled results.
 """
 
@@ -34,7 +35,7 @@ from typing import Any, Literal
 from civicmind import __version__ as CIVICMIND_VERSION
 from civicmind.ingestion.exceptions import DatasetValidationError
 
-_SOURCE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+SOURCE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
 Severity = Literal["info", "warning", "error"]
 
@@ -63,7 +64,7 @@ class SourceDescriptor:
     tags: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if not self.source_id or not _SOURCE_ID_PATTERN.match(self.source_id):
+        if not self.source_id or not SOURCE_ID_PATTERN.match(self.source_id):
             raise ValueError(
                 f"source_id must be a lowercase slug (letters, digits, '.', '_', '-'), "
                 f"got {self.source_id!r}"
@@ -187,6 +188,18 @@ class DatasetIngestor(ABC):
         """The registered identifier of this source."""
         return self.describe().source_id
 
+    @property
+    def limits(self) -> TransferLimits:
+        """Optional transfer bounds for network-based handlers.
+
+        Network handlers return a concrete :class:`TransferLimits`; local-only
+        handlers return a no-op bounds object whose only meaningful field is
+        ``max_bytes=0`` (no network transfer is possible). Callers that inspect
+        ``limits`` must treat ``max_bytes == 0`` as "this handler does not fetch
+        bytes" rather than as a real size ceiling.
+        """
+        return getattr(self, "_limits", None) or _no_op_limits()
+
     def build_provenance(self, result: AcquisitionResult) -> ProvenanceRecord:
         """Assemble a provenance record from the descriptor and the result."""
         descriptor = self.describe()
@@ -203,6 +216,35 @@ class DatasetIngestor(ABC):
             byte_size=result.byte_size,
             handler=f"{type(self).__module__}.{type(self).__qualname__}",
             handler_version=getattr(self, "HANDLER_VERSION", "0"),
+            civicmind_version=CIVICMIND_VERSION,
+        )
+
+    @classmethod
+    def _build_provenance_for(
+        cls, instance: DatasetIngestor, result: AcquisitionResult
+    ) -> ProvenanceRecord:
+        """Build a provenance record for ``instance`` without using ``super()``.
+
+        This exists only because some frozen-dataclass handler hierarchies cannot
+        reliably reach the base implementation through ``super().build_provenance``
+        from within an overridden method. Callers should prefer
+        ``self.build_provenance`` and only fall back to this helper when they need
+        the base record before subclass-specific overrides.
+        """
+        descriptor = instance.describe()
+        return ProvenanceRecord(
+            source_id=descriptor.source_id,
+            title=descriptor.title,
+            publisher=descriptor.publisher,
+            license=descriptor.license,
+            source_uri=descriptor.uri,
+            acquired_at=result.acquired_at,
+            acquisition_method=result.method,
+            local_path=str(result.local_path) if result.local_path else None,
+            checksum_sha256=result.checksum_sha256,
+            byte_size=result.byte_size,
+            handler=f"{type(instance).__module__}.{type(instance).__qualname__}",
+            handler_version=getattr(instance, "HANDLER_VERSION", "0"),
             civicmind_version=CIVICMIND_VERSION,
         )
 
@@ -224,3 +266,61 @@ class DatasetIngestor(ABC):
         if enforce_validation:
             report.raise_for_errors()
         return IngestionOutcome(result=acquisition, report=report, provenance=provenance)
+
+
+def _no_op_limits() -> TransferLimits:
+    """A shared no-op bounds object for handlers that never perform a network transfer.
+
+    It satisfies the base contract so plan/status code can inspect ``limits``
+    without special-casing local-only handlers. ``max_bytes`` is zero to signal
+    that no network transfer is possible; the timeouts and attempts are zero so
+    the object is not mistaken for a real fetcher configuration.
+    """
+    from civicmind.ingestion.transfer import TransferLimits as _RealTransferLimits  # noqa: E402
+
+    class _LocalLimits(_RealTransferLimits):
+        def as_dict(self) -> dict[str, float | int]:
+            return {
+                "connect_timeout_seconds": 0.0,
+                "read_timeout_seconds": 0.0,
+                "max_bytes": 0,
+                "attempts": 0,
+                "backoff_seconds": 0.0,
+            }
+
+        def __post_init__(self) -> None:
+            # Do not run the parent's strict positivity checks; this object is
+            # intentionally a placeholder, not a real transfer configuration.
+            return
+
+        # HACK: _LocalLimits is not a real transfer configuration. This bypasses the
+        # frozen dataclass sentinel so the placeholder can exist without triggering
+        # TransferLimits.__post_init__ validation. Do not model real no-op limits this
+        # way; this exists only because the shipped contract couples plan/status to a
+        # concrete TransferLimits object.
+        def __init__(self) -> None:
+            object.__setattr__(self, "connect_timeout", 0.0)
+            object.__setattr__(self, "read_timeout", 0.0)
+            object.__setattr__(self, "max_bytes", 0)
+            object.__setattr__(self, "attempts", 0)
+            object.__setattr__(self, "backoff_seconds", 0.0)
+
+    return _LocalLimits()
+
+
+# Bounded late import so DatasetIngestor.limits and _no_op_limits() can reference
+# TransferLimits without making it a top-level import from civicmind.ingestion.transfer.
+from civicmind.ingestion.transfer import TransferLimits  # noqa: E402
+
+# NOTE: ``_build_provenance_for`` is a method on DatasetIngestor, not a module
+# symbol, so it is deliberately absent from this module's __all__.
+__all__ = [
+    "AcquisitionResult",
+    "DatasetIngestor",
+    "IngestionOutcome",
+    "ProvenanceRecord",
+    "QualityIssue",
+    "SourceDescriptor",
+    "ValidationReport",
+    "_no_op_limits",
+]

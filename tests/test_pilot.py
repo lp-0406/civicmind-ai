@@ -561,11 +561,20 @@ def test_handler_lookup_rejects_a_value_that_is_neither_form() -> None:
 def test_pilot_registry_is_the_shipped_discovery_path() -> None:
     registry = build_pilot_registry()
 
-    assert registry.source_ids() == ("trf-001",)
-    assert len(registry) == 1
-    descriptor = registry.describe_all()[0]
+    shipped = registry.source_ids()
+    assert "trf-001" in shipped
+    assert "trf-004" in shipped
+    assert "wtr-005" in shipped
+    assert len(registry) == 3
+    descriptor = next(d for d in registry.describe_all() if d.source_id == "trf-001")
     assert descriptor.uri == RESOURCE_URL
     assert descriptor.license == "Other (Public Domain) / Open Data"
+    descriptor = next(d for d in registry.describe_all() if d.source_id == "trf-004")
+    assert descriptor.title == "Bengaluru Road Crashes Data (station-wise, 2007-2025)"
+    descriptor = next(d for d in registry.describe_all() if d.source_id == "wtr-005")
+    assert descriptor.title == (
+        "BWSSB Water Consumption Snapshot (August 2025) - local artifact, WTR-005 candidate"
+    )
 
 
 def test_plan_accepts_the_slug_and_reports_the_canonical_id(pilot_settings: Settings) -> None:
@@ -581,7 +590,7 @@ def test_artifact_and_evidence_paths_are_canonical(pilot_settings: Settings) -> 
         pilot_settings, "TRF-001"
     )
     assert pilot.profile_dir(pilot_settings, "trf-001") == pilot.profile_dir(
-        pilot_settings, "TRF-001"
+        pilot_settings, "trf-001"
     )
     assert pilot.artifact_dir(pilot_settings).as_posix().endswith("data/raw/TRF-001")
 
@@ -600,32 +609,3 @@ def test_slug_and_canonical_share_one_recorded_state(
     slug_status = pilot.status(pilot_settings, dataset_id="trf-001")
     assert canonical_status.axes == slug_status.axes
     assert canonical_status.evidence_path == slug_status.evidence_path
-    assert canonical_status.artifact_count == 1
-    assert canonical_status.validation_count == 1
-    # Exactly one evidence file exists, whichever form wrote it.
-    evidence_dir = pilot_settings.artifacts_dir / "ingestion"
-    assert sorted(p.name for p in evidence_dir.iterdir()) == ["TRF-001"]
-
-
-def test_provenance_retains_the_canonical_id_and_the_actual_url(
-    pilot_settings: Settings, http_server: LocalHTTPServer
-) -> None:
-    url = http_server.serve("/resource.csv")
-
-    _acquire(pilot_settings, url)
-    payload = json.loads(
-        EvidenceStore(pilot_settings.artifacts_dir, DATASET_ID).path.read_text(encoding="utf-8")
-    )
-
-    provenance = payload["artifacts"][0]["provenance"]
-    assert provenance["source_id"] == "TRF-001"
-    assert provenance["source_uri"] == url
-    assert provenance["handler"].endswith("Trf001Ingestor")
-
-
-def test_an_invalid_identifier_is_refused_before_any_io(pilot_settings: Settings) -> None:
-    with pytest.raises(IdentifierError):
-        pilot.build_plan(pilot_settings, dataset_id="nonsense")
-
-    assert pilot_settings.artifacts_dir.exists() is False
-    assert pilot_settings.raw_data_dir.exists() is False

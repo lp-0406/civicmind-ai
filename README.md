@@ -118,15 +118,32 @@ reinstall needed while developing.
 
 ### Optional AI/GPU extra
 
-PyTorch is **not** required. Install it only when you need the future AI
-stages:
+The decision-support pipeline's analytics need only `pandas` (a core
+dependency). Local-model inference and the HTTP API are optional extras, and
+neither is required to answer a question:
 
 ```bash
-python -m pip install -e ".[ai]"   # CPU or CUDA build, per your platform
+python -m pip install -e ".[api]"   # fastapi + uvicorn for `civicmind ai serve`
+python -m pip install -e ".[ai]"    # torch + transformers for local inference
+
+# On a CUDA machine, install the matching PyTorch build first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
-`civicmind health` reports whether PyTorch/CUDA are present without importing
-them unless installed.
+With no model configured, `civicmind ask` answers deterministically from the
+CSVs. `civicmind health` reports whether PyTorch/CUDA are present without
+importing them unless installed.
+
+On the GPU machine, run the smoke test first — it reports the environment and
+readiness, and loads a model only when explicitly asked:
+
+```bash
+python scripts/gpu_smoke_test.py               # environment + readiness (no model load)
+python scripts/gpu_smoke_test.py --load-model  # real inference with the configured model
+```
+
+See [docs/ai/first_ai_pipeline.md](docs/ai/first_ai_pipeline.md) for the full
+pipeline, the GPU instructions, the evaluation results and the run modes.
 
 ## Tests, linting and formatting
 
@@ -148,8 +165,13 @@ civicmind health                     # environment report (exit 1 if unusable)
 civicmind health --json              # same, machine-readable
 civicmind config show                # resolved settings (secrets excluded)
 civicmind config show --json
-civicmind ingest list                # registered ingestion handlers (empty today)
+civicmind ingest list                # registered ingestion handlers
 civicmind ingest list --json
+civicmind ask "Which states had the highest reported road accidents in 2019?"
+civicmind ask --json "What published share did Telangana have in 2019?"
+civicmind ai datasets                 # the AI layer's datasets + availability
+civicmind ai evaluate                 # run the fixed benchmark and print metrics
+civicmind ai serve --port 8000        # FastAPI interface (requires the 'api' extra)
 ```
 
 Without installing the console script, use the module directly:
@@ -171,6 +193,11 @@ Supported variables: `CIVICMIND_ENV`, `CIVICMIND_LOG_LEVEL`,
 `CIVICMIND_LOG_FORMAT`, `CIVICMIND_DATA_DIR`, `CIVICMIND_LOGS_DIR`,
 `CIVICMIND_ARTIFACTS_DIR`, `CIVICMIND_CONFIGS_DIR`,
 `CIVICMIND_PROJECT_ROOT`.
+
+The AI layer adds `CIVICMIND_AI_PROVIDER`, `CIVICMIND_AI_MODEL_ID`,
+`CIVICMIND_AI_DEVICE`, `CIVICMIND_AI_MAX_NEW_TOKENS`, `CIVICMIND_AI_TEMPERATURE`,
+`CIVICMIND_AI_API_BASE_URL`, `CIVICMIND_AI_API_KEY_ENV` and
+`CIVICMIND_AI_TIMEOUT_SECONDS` (see [.env.example](.env.example)).
 
 **Secret-handling policy**
 
@@ -227,6 +254,8 @@ the full contract.
   components, design decisions, implemented vs planned.
 * [docs/datasets/ingestion_strategy.md](docs/datasets/ingestion_strategy.md) —
   ingestion contract, governance checklist, safeguards.
+* [docs/ai/first_ai_pipeline.md](docs/ai/first_ai_pipeline.md) — the first AI
+  pipeline: architecture, data flow, run modes, GPU setup and limitations.
 * [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) — milestone tracker.
 
 ## Licence

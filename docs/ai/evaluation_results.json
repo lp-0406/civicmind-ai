@@ -1,0 +1,389 @@
+{
+  "benchmark": [
+    {
+      "case_id": "roads-state-ranking",
+      "category": "ranking",
+      "question": "Which states had the highest reported road accidents in 2019?",
+      "expected_supported": true,
+      "expected_intent": "state_accident_ranking",
+      "expected_dataset": "RA2019_A2",
+      "expected_source_file": "data/raw/RA2019_A2.csv",
+      "expected_values": {
+        "top_states.0.state": "Tamil Nadu",
+        "top_states.0.accidents": 57228,
+        "top_states.1.state": "Madhya Pradesh",
+        "reported_total": 449002,
+        "states_considered": 36
+      },
+      "expects_missing_data": false,
+      "notes": "Aggregate 'Total ' row must be excluded and reported separately."
+    },
+    {
+      "case_id": "roads-published-share",
+      "category": "share",
+      "question": "What published share did Telangana have in 2019?",
+      "expected_supported": true,
+      "expected_intent": "state_share",
+      "expected_dataset": "RA2019_A2",
+      "expected_source_file": "data/raw/RA2019_A2.csv",
+      "expected_values": {
+        "state": "Telangana",
+        "accidents": 21570,
+        "rank": 9,
+        "share_percent": 4.80398751
+      },
+      "expects_missing_data": false,
+      "notes": "Published share is already on a 0-100 scale and must not be re-derived."
+    },
+    {
+      "case_id": "roads-junction-injuries",
+      "category": "junction",
+      "question": "Which reported junction categories have the highest injured totals?",
+      "expected_supported": true,
+      "expected_intent": "junction_injury_totals",
+      "expected_dataset": "RA2019_A49",
+      "expected_source_file": "data/raw/RA2019_A49.csv",
+      "expected_values": {
+        "categories.0.category": "Others",
+        "categories.0.total_injured": 41993,
+        "categories.1.category": "T-Junction",
+        "cities_considered": 50
+      },
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "roads-over-speeding",
+      "category": "violation",
+      "question": "Which cities have the most over-speeding violations?",
+      "expected_supported": true,
+      "expected_intent": "overspeeding_ranking",
+      "expected_dataset": "RA2019_A47",
+      "expected_source_file": "data/raw/RA2019_A47.csv",
+      "expected_values": {
+        "top_cities.0.city": "Bengaluru",
+        "top_cities.0.over_speeding_accidents": 4143,
+        "cities_considered": 50
+      },
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "water-consumption",
+      "category": "water",
+      "question": "What are the highest recorded ward-level water consumption values for August 2025?",
+      "expected_supported": true,
+      "expected_intent": "ward_water_consumption",
+      "expected_dataset": "BWSSB_WATER",
+      "expected_source_file": "data/raw/BWSSB_Water_Consumption_August_2025.csv",
+      "expected_values": {
+        "top_wards.0.ward_name": "HSR Layout",
+        "top_wards.0.ward_number": "174",
+        "top_wards.0.consumption_ml": 605.66,
+        "wards_considered": 202,
+        "total_consumption_ml": 30580.05
+      },
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "water-connections",
+      "category": "connections",
+      "question": "How many water connections are there per ward?",
+      "expected_supported": true,
+      "expected_intent": "water_connection_summary",
+      "expected_dataset": "BWSSB_WATER",
+      "expected_source_file": "data/raw/BWSSB_Water_Consumption_August_2025.csv",
+      "expected_values": {
+        "wards_considered": 202,
+        "total_connections": 1047734
+      },
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "unsupported-off-topic",
+      "category": "unsupported",
+      "question": "What is the best cricket team in the world?",
+      "expected_supported": false,
+      "expected_intent": null,
+      "expected_dataset": null,
+      "expected_source_file": null,
+      "expected_values": {},
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "unsupported-missing-data",
+      "category": "unavailable",
+      "question": "Which states had the highest reported road accidents in 2019?",
+      "expected_supported": false,
+      "expected_intent": "state_accident_ranking",
+      "expected_dataset": null,
+      "expected_source_file": null,
+      "expected_values": {},
+      "expects_missing_data": true,
+      "notes": "Runs with an empty data/raw tree: the pipeline must refuse, not fabricate."
+    },
+    {
+      "case_id": "granularity-ward-roads",
+      "category": "granularity",
+      "question": "Which ward had the highest number of road accidents in 2019?",
+      "expected_supported": false,
+      "expected_intent": null,
+      "expected_dataset": null,
+      "expected_source_file": null,
+      "expected_values": {},
+      "expects_missing_data": false,
+      "notes": "Roads data has no ward grain; the question must be refused, not mis-routed."
+    },
+    {
+      "case_id": "granularity-join",
+      "category": "granularity",
+      "question": "Can these datasets be joined reliably, and what evidence supports the answer?",
+      "expected_supported": true,
+      "expected_intent": "join_assessment",
+      "expected_dataset": "RA2019_A49",
+      "expected_source_file": "data/raw/RA2019_A49.csv",
+      "expected_values": {
+        "water_joinable": false,
+        "pairs.2.left": "RA2019_A47",
+        "pairs.2.reliable": true,
+        "pairs.2.shared_labels": 50
+      },
+      "expects_missing_data": false,
+      "notes": ""
+    },
+    {
+      "case_id": "temporal-out-of-range",
+      "category": "temporal",
+      "question": "What will the road accidents be in 2030?",
+      "expected_supported": false,
+      "expected_intent": null,
+      "expected_dataset": null,
+      "expected_source_file": null,
+      "expected_values": {},
+      "expects_missing_data": false,
+      "notes": "Roads data covers 2016-2019; no projection is produced."
+    }
+  ],
+  "report": {
+    "benchmark_size": 11,
+    "execution_mode": "deterministic",
+    "provider": "deterministic",
+    "metrics": {
+      "numerical_accuracy": 1.0,
+      "attribution_accuracy": 1.0,
+      "unsupported_rejection_rate": 1.0,
+      "intent_accuracy": 1.0,
+      "supported_case_count": 7.0,
+      "unsupported_case_count": 4.0,
+      "mean_latency_seconds": 0.011100899989039383,
+      "p95_latency_seconds": 0.032898399978876114,
+      "max_latency_seconds": 0.032898399978876114
+    },
+    "cases": [
+      {
+        "case_id": "roads-state-ranking",
+        "category": "ranking",
+        "question": "Which states had the highest reported road accidents in 2019?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "state_accident_ranking",
+        "actual_intent": "state_accident_ranking",
+        "expected_source_file": "data/raw/RA2019_A2.csv",
+        "evidence_sources": [
+          "data/raw/RA2019_A2.csv"
+        ],
+        "elapsed_seconds": 0.017920300015248358,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "roads-published-share",
+        "category": "share",
+        "question": "What published share did Telangana have in 2019?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "state_share",
+        "actual_intent": "state_share",
+        "expected_source_file": "data/raw/RA2019_A2.csv",
+        "evidence_sources": [
+          "data/raw/RA2019_A2.csv"
+        ],
+        "elapsed_seconds": 0.015235599945299327,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "roads-junction-injuries",
+        "category": "junction",
+        "question": "Which reported junction categories have the highest injured totals?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "junction_injury_totals",
+        "actual_intent": "junction_injury_totals",
+        "expected_source_file": "data/raw/RA2019_A49.csv",
+        "evidence_sources": [
+          "data/raw/RA2019_A49.csv"
+        ],
+        "elapsed_seconds": 0.013438499998301268,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "roads-over-speeding",
+        "category": "violation",
+        "question": "Which cities have the most over-speeding violations?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "overspeeding_ranking",
+        "actual_intent": "overspeeding_ranking",
+        "expected_source_file": "data/raw/RA2019_A47.csv",
+        "evidence_sources": [
+          "data/raw/RA2019_A47.csv"
+        ],
+        "elapsed_seconds": 0.021353799966163933,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "water-consumption",
+        "category": "water",
+        "question": "What are the highest recorded ward-level water consumption values for August 2025?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "ward_water_consumption",
+        "actual_intent": "ward_water_consumption",
+        "expected_source_file": "data/raw/BWSSB_Water_Consumption_August_2025.csv",
+        "evidence_sources": [
+          "data/raw/BWSSB_Water_Consumption_August_2025.csv"
+        ],
+        "elapsed_seconds": 0.013205300085246563,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "water-connections",
+        "category": "connections",
+        "question": "How many water connections are there per ward?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "water_connection_summary",
+        "actual_intent": "water_connection_summary",
+        "expected_source_file": "data/raw/BWSSB_Water_Consumption_August_2025.csv",
+        "evidence_sources": [
+          "data/raw/BWSSB_Water_Consumption_August_2025.csv"
+        ],
+        "elapsed_seconds": 0.007637999951839447,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "unsupported-off-topic",
+        "category": "unsupported",
+        "question": "What is the best cricket team in the world?",
+        "expected_supported": false,
+        "actual_supported": false,
+        "expected_intent": null,
+        "actual_intent": null,
+        "expected_source_file": null,
+        "evidence_sources": [],
+        "elapsed_seconds": 5.359994247555733e-05,
+        "intent_ok": true,
+        "unsupported_ok": true,
+        "numerical_ok": null,
+        "attribution_ok": null,
+        "detail": ""
+      },
+      {
+        "case_id": "unsupported-missing-data",
+        "category": "unavailable",
+        "question": "Which states had the highest reported road accidents in 2019?",
+        "expected_supported": false,
+        "actual_supported": false,
+        "expected_intent": "state_accident_ranking",
+        "actual_intent": "state_accident_ranking",
+        "expected_source_file": null,
+        "evidence_sources": [],
+        "elapsed_seconds": 0.0002986999461427331,
+        "intent_ok": true,
+        "unsupported_ok": true,
+        "numerical_ok": null,
+        "attribution_ok": null,
+        "detail": ""
+      },
+      {
+        "case_id": "granularity-ward-roads",
+        "category": "granularity",
+        "question": "Which ward had the highest number of road accidents in 2019?",
+        "expected_supported": false,
+        "actual_supported": false,
+        "expected_intent": null,
+        "actual_intent": null,
+        "expected_source_file": null,
+        "evidence_sources": [],
+        "elapsed_seconds": 2.2500054910779e-05,
+        "intent_ok": true,
+        "unsupported_ok": true,
+        "numerical_ok": null,
+        "attribution_ok": null,
+        "detail": ""
+      },
+      {
+        "case_id": "granularity-join",
+        "category": "granularity",
+        "question": "Can these datasets be joined reliably, and what evidence supports the answer?",
+        "expected_supported": true,
+        "actual_supported": true,
+        "expected_intent": "join_assessment",
+        "actual_intent": "join_assessment",
+        "expected_source_file": "data/raw/RA2019_A49.csv",
+        "evidence_sources": [
+          "data/raw/RA2019_A49.csv"
+        ],
+        "elapsed_seconds": 0.032898399978876114,
+        "intent_ok": true,
+        "unsupported_ok": null,
+        "numerical_ok": true,
+        "attribution_ok": true,
+        "detail": ""
+      },
+      {
+        "case_id": "temporal-out-of-range",
+        "category": "temporal",
+        "question": "What will the road accidents be in 2030?",
+        "expected_supported": false,
+        "actual_supported": false,
+        "expected_intent": null,
+        "actual_intent": null,
+        "expected_source_file": null,
+        "evidence_sources": [],
+        "elapsed_seconds": 4.5199994929134846e-05,
+        "intent_ok": true,
+        "unsupported_ok": true,
+        "numerical_ok": null,
+        "attribution_ok": null,
+        "detail": ""
+      }
+    ]
+  }
+}

@@ -153,7 +153,11 @@ class Trf001Ingestor(DatasetIngestor):
         sleep: object = None,
     ) -> None:
         self.resource_url = resource_url if resource_url is not None else RESOURCE_URL
-        self.limits = limits if limits is not None else TransferLimits(max_bytes=DEFAULT_MAX_BYTES)
+        object.__setattr__(
+            self,
+            "_limits",
+            limits if limits is not None else TransferLimits(max_bytes=DEFAULT_MAX_BYTES),
+        )
         self._clock = clock
         self._sleep = sleep
 

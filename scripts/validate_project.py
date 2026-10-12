@@ -91,6 +91,38 @@ def main() -> int:
         if not directory.is_dir():
             check(False, f"clean {relative}", "directory missing")
             continue
+
+        if relative == "data/raw":
+            KNOWN_RAW_STAGING_FILES: frozenset[str] = frozenset(
+                {
+                    "BWSSB_Water_Consumption_August_2025.csv",
+                    "RA2019_A2.csv",
+                    "RA2019_A47.csv",
+                    "RA2019_A49.csv",
+                    "RA2019_A52.csv",
+                }
+            )
+            unexpected = sorted(
+                p.name
+                for p in directory.iterdir()
+                if p.name != ".gitkeep" and p.name not in KNOWN_RAW_STAGING_FILES
+            )
+            check(
+                not unexpected,
+                f"clean {relative}",
+                "no unexpected payloads committed"
+                if not unexpected
+                else f"unexpected entries: {unexpected}",
+            )
+            check(
+                all((directory / name).is_file() for name in KNOWN_RAW_STAGING_FILES),
+                f"known {relative} staging files present",
+                "staged raw CSVs missing"
+                if not all((directory / name).is_file() for name in KNOWN_RAW_STAGING_FILES)
+                else "",
+            )
+            continue
+
         unexpected = sorted(p.name for p in directory.iterdir() if p.name != ".gitkeep")
         check(
             not unexpected,

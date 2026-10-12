@@ -30,16 +30,29 @@ classifiers = [
 dependencies = [
     # Needed to read secrets and local overrides from a `.env` file.
     "python-dotenv>=1.0,<2",
+    # Deterministic analytics over the supplied CSVs (data loading + numeric ops).
+    "pandas>=2.0,<3",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0,<9",
     "ruff>=0.5",
+    # Required by fastapi.testclient for the API tests.
+    "httpx>=0.27",
 ]
-# Optional AI/GPU stack. Never required for ingestion, validation or tests.
+# HTTP interface. Never required for ingestion, validation or the CLI's analytics.
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.27",
+]
+# Optional local-inference stack. Never required for ingestion, validation or tests.
+# On the college GPU machine, install the matching CUDA PyTorch build separately; see
+# docs/ai/first_ai_pipeline.md for the exact commands.
 ai = [
     "torch>=2.2",
+    "transformers>=4.40",
 ]
 
 [project.scripts]
