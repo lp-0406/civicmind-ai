@@ -339,7 +339,7 @@ class Trf004Ingestor(DatasetIngestor):
         if b"\x00" in raw:
             issues.append(
                 QualityIssue(
-                    severity="warning",
+                    severity="error",
                     code="NUL_BYTES",
                     message="artifact contains NUL bytes; the file may be binary or corrupted",
                 )
