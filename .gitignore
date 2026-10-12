@@ -260,6 +260,16 @@ data/processed/*
 data/external/*
 !data/**/.gitkeep
 
+# Reproducible-setup allowlist: the five supplied raw CSVs that a fresh clone
+# needs in order to run the complete tests and reproduce the CivicMind AI pipeline.
+# These are the ONLY files under data/raw/ that are not ignored. Everything else
+# under data/raw/ remains ignored by the rule above.
+!data/raw/RA2019_A2.csv
+!data/raw/RA2019_A47.csv
+!data/raw/RA2019_A49.csv
+!data/raw/RA2019_A52.csv
+!data/raw/BWSSB_Water_Consumption_August_2025.csv
+
 # Generated artifacts and logs
 artifacts/*
 !artifacts/.gitkeep

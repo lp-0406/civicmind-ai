@@ -1,0 +1,203 @@
+Ward number ,Ward Name,Number of Connections,Consumption in ML
+1,Kempegowda Ward,4247,114.25
+2,Chowdeshwari Ward,463,23.62
+3,Attur,6278,173.10
+4,Yelahanka Satellite town,7750,390.73
+5,Jakkur,3846,106.07
+6,Thanisandra,3715,53.84
+7,Byatarayanapura,9705,285.71
+8,Kodigehalli,5392,127.78
+9,Vidyaranyapura,12962,390.23
+10,Doddabommasandra,1842,27.62
+11,Kuvempunagar,4462,60.42
+12,Shettyhalli,8074,136.85
+13,Mallasandra,4524,72.75
+14,Bagalagunte,8785,225.54
+14,sidedahalli,1569,40.96
+15,T. Dasarahalli,4582,145.97
+16,Jalahalli,3107,91.56
+17,J.P.Park,5739,129.52
+18,Radhakrishna Temple Ward,5517,97.96
+19,Sanjaynagar,5815,86.78
+20,Ganganagar,3332,69.12
+21,Hebbal,7468,158.48
+22,VishwanathNagenahalli,3283,75.76
+23,Nagavara,9071,190.71
+24,HBR Layout,8157,240.06
+25,Horamavu,11232,156.55
+26,Ramamurthynagar,9483,264.97
+27,Banasawadi,9624,277.00
+28,Kammanahalli,6633,179.32
+29,Kacharakanahalli,4869,129.55
+30,Kadugondanahalli,5131,132.02
+31,Kushalnagar,3147,56.33
+32,Kavalbyrasandra,5578,104.02
+33,Manorayanapalya,2682,59.74
+34,Gangenahalli,2321,47.17
+35,Aramane Nagar,2967,82.07
+36,Mathikere,4142,85.10
+37,Yeshwanthpur,3215,60.53
+38,H.M.T,3656,132.90
+39,Chokkasandra,5853,133.01
+40,Doddabidirakalu,1,0.00
+41,Peenya Industrial Area,8192,204.09
+42,Lakshmidevinagar,5147,106.77
+43,Nandini Layout,6449,157.67
+44,Marappanahalli,4441,122.21
+45,Malleshwaram,3656,108.38
+46,Jayachamarajendra Nagar,5326,182.14
+47,Devarajeevanahalli,3745,79.61
+48,Muneshwaranagar,2196,35.95
+49,Lingarajapura,5742,95.74
+50,Benniganahalli,5859,361.68
+51,Vijinapura,6269,129.81
+52,K.R.Puram,8885,168.31
+53,Basavanapura,8382,205.69
+54,Hoodi,5171,314.45
+55,Devasandra,3277,83.79
+56,A. Narayanapura,8410,225.82
+57,C.V. Ramannagar,3270,77.16
+58,Hosathippasandra,6022,151.59
+59,Maruthiseva Nagar,5585,162.23
+60,Sagayapuram,4264,96.18
+61,S.K. Garden,2881,77.56
+62,Ramaswamy palya,3129,78.46
+63,Jayamahal,3076,121.23
+64,Rajamahal,3692,90.22
+65,Kadumalleshwara,5605,159.48
+66,Subramanyanagar,4282,128.47
+67,Nagapura,5795,178.21
+68,Mahalakshmipuram,5094,136.54
+69,Laggere,10222,237.90
+70,Rajagopalanagar,8295,188.28
+71,Hegganahalli,8658,233.80
+72,herohalli,10947,209.70
+73,Kottigepalya,8468,202.67
+74,Shakthiganapathi nagar,6108,154.73
+75,Shankaramata,5211,146.31
+76,Gayathrinagar,4374,118.61
+77,Dattathreya Temple,4481,117.05
+78,Pulikeshinagar,3573,120.35
+79,Sarvagnanagar,3435,78.55
+80,Hoysalanagar,5463,153.01
+81,Vignananagar,7071,190.65
+82,Garudacharpalya,4357,183.68
+83,Kadugodi,1006,48.08
+84,Hagadooru,2003,120.59
+85,Doddanekkundi,5667,320.96
+85,Varthur,1353,94.25
+86,Marathalli,4669,159.32
+87,HAL Airport,4375,91.06
+88,Jeevanbhimanagar,6001,150.25
+89,Jogupalya,4066,128.80
+90,Ulsoor,5606,334.22
+91,Bharathinagar,2239,94.91
+92,Shivajinagar,5147,203.15
+93,Vasanthnagar,3736,263.92
+94,Gandhinagar,4774,355.90
+95,Subhashnagar,3091,59.72
+96,Okalipuram,3419,138.33
+97,Dayanandanagar,3497,82.68
+98,Prakashnagar,3074,80.42
+99,Rajajinagar,3929,113.56
+100,Basaveshwaranagar,5767,166.10
+101,Kamakshipalya,3684,90.58
+102,Vrushabhavathi Nagar,4175,98.63
+103,Kaveripura,5038,104.98
+104,Govindrajnagara,2896,69.52
+105,Agrahara Dasarahalli,3212,90.90
+106,Dr. Rajkumar Ward,2471,80.77
+107,Shivanagar,2456,85.74
+108,Srirammandira ward,4676,116.34
+109,Chikpet,5606,108.70
+110,Sampangiramnagar,3009,130.95
+111,Shanthala Nagar,3777,223.37
+112,Dommalur,4767,193.22
+113,Konena Agrahara,3939,122.02
+114,Agaram,2926,152.58
+115,Vannarpet,5171,105.45
+116,Neelasandra,2644,60.85
+117,Shanthinagar,6212,247.99
+118,Sudamnagar,5143,98.22
+119,Dharmarayaswamy Temple Ward,4979,99.60
+120,Cottonpet,3071,62.74
+121,Binnypet,4575,97.01
+122,Kempapura Agrahara,3912,86.46
+123,Vijaynagar,3616,90.32
+124,Hosahalli,4510,112.02
+125,Marenahalli,3408,92.27
+126,Maruthi Mandira Ward,4024,101.94
+127,Moodalapalya,5865,129.00
+128,Nagarabhavi,10860,256.96
+129,Jnanabharathi ward,13853,335.74
+130,Ullalu,9090,193.71
+131,Nayandanahalli,4367,112.63
+132,Attiguppe,5484,160.78
+133,Hampinagar,3028,76.80
+134,Bapujinagar,4469,134.15
+135,Padarayanapura,2029,70.16
+136,Jagareevanram Nagar,4823,127.44
+137,Rayapuram,3460,79.12
+138,Chalavadipalya,2391,52.22
+139,K.R. Market,2928,54.16
+140,Chamrajpet,4779,170.96
+141,Azadnagar,4025,104.14
+142,Sunkenahalli,2892,65.28
+143,Vishweshrapuram,4735,112.48
+144,Siddapura,4483,122.14
+145,Hombegowdanagar,6543,198.19
+146,Lakkasandra,2834,98.06
+147,Adugodi,3420,106.88
+148,Ejipura,4787,143.77
+149,Varthur,3314,158.68
+150,Bellandur,5166,398.22
+151,Koramangala,7159,309.19
+152,Sudduguntepalya,4076,152.55
+153,Jayanagar,340,8.28
+153,Jayangar,3647,164.60
+154,Basavanagudi,5801,137.45
+155,Hanumanthanagar,4142,88.45
+156,Srinagar,5680,139.85
+157,Gali Anjaneya swamy Temple Ward,5394,136.48
+158,Deepanjali Nagar,2937,77.33
+159,Kengeri,14507,292.22
+160,Rajarajeshwarinagar,16505,456.39
+161,Hosakerehalli,7370,170.02
+162,Girinagar,7740,175.45
+163,Katriguppe,6534,139.75
+164,Vidyapeetha Ward,4757,102.94
+165,Ganeshmandira Ward,4509,117.34
+166,Karisandra,4639,118.67
+167,Yadiyuru,4406,108.25
+168,Pattabhiramnagar,4306,148.22
+169,Byrasandra,3845,119.02
+170,Jayanagar East,3889,106.02
+171,Gurappanapalya,4065,192.83
+172,Madiwala,5580,171.58
+173,Jakkasandra,2856,137.82
+174,HSR Layout,14147,605.66
+175,Bommanahalli,6548,294.27
+176,BTM Layout,7557,259.07
+177,J.P.Nagar,5627,176.45
+178,Sarakki,5620,178.40
+179,Shakambarinagar,3776,112.08
+180,Banashankari Temple Ward,5182,117.08
+181,Kumaraswamy Layout,8394,251.30
+182,Padmanabhanagar,6044,176.67
+183,Chikkallasandra,5184,133.99
+184,Uttarahalli,9278,302.36
+185,Yelachenahalli,6759,183.62
+186,Jaraganahalli,3051,86.44
+187,Puttenahalli,4641,152.58
+188,Bilekahalli,4403,264.83
+189,Hongasandra,8368,360.67
+190,Mangammanapalya,3251,99.93
+191,Singasandra,3960,159.62
+191,Singsandra,1008,42.89
+192,Begur,6890,338.65
+193,Arakere,10044,378.30
+194,Gottigere,4047,96.53
+195,Konanakunte,10175,304.19
+196,Anjanapura,8579,305.91
+197,Vasanthapura,4303,142.42
+198,Hemmigepura,4549,103.98
